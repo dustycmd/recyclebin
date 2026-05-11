@@ -1,48 +1,36 @@
-n = int(input("Enter Number of Lines: "))
+prog = [
+    ["COPY", "START", "1000"],
+    ["-",    "LDA",   "ALPHA"],
+    ["ALPHA", "ADD",   "BETA"],
+    ["BETA",  "STA",   "GAMMA"],
+    ["-",    "RSUB",  "-"],
+    ["GAMMA", "RESW",  "1"]
+]
 
-prog = []
 symtab = {}
-
 loc = 0
 start = 0
-progname = ""
+name = ""
 
-for _ in range(n):
-
-    line = input().split()
-    prog.append(line)
-
-# PASS 1
 for line in prog:
+    label, instr, oper = line[0], line[1], line[2]
 
-    if line[1] == "START":
-
-        progname = line[0]
-        start = int(line[2])
+    if instr == "START":
+        name = label
+        start = int(oper)
         loc = start
-
     else:
-
-        label = line[0]
-
         if label != "-":
             symtab[label] = loc
-
         loc += 3
 
 length = loc - start
 
-# H RECORD
-print("\nH Record")
-print(f"H^{progname}^{start:06}^{length:06}")
+print(f"H^{name}^{start:06X}^{length:06X}")
 
-# SYMBOL TABLE
 print("\nSymbol Table")
-print("Symbol\tValue")
+for sym, val in symtab.items():
+    print(f"{sym}\t{val:06X}")
 
-for sym,val in symtab.items():
-    print(f"{sym}\t{val:06}")
-
-# E RECORD
-print("\nE Record")
-print(f"E^{start:06}")
+print(f"\nT^{start:06X}^{length:02X}")
+print(f"E^{start:06X}")
