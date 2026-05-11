@@ -1,60 +1,66 @@
-prog = [
-    "PG1 START 0000",
-    "EXTDEF A B",
-    "EXTREF C D",
-    "ADD ABC",
-    "A SUB PQR",
-    "ADD ABC1",
-    "B MUL ABC",
-    "END"
-]
+def generate_records(asm_input):
+    lines = [line.strip() for line in asm_input.strip().split('\n')]
+    
+    symbol_table = {}
+    extdef_symbols = []
+    extref_symbols = []
+    lc = 0
+    
+    for line in lines:
+        parts = line.replace(',', ' ').split()
+        if not parts: continue
+        
+        if "START" in parts:
+            lc = int(parts[parts.index("START") + 1], 16)
+            continue
+            
+        if "EXTDEF" in parts:
+            extdef_symbols = parts[1:]
+            continue
+            
+        if "EXTREF" in parts:
+            extref_symbols = parts[1:]
+            continue
 
-loc = 0
-symtab = {}
-drecord = "D^"
-rrecord = "R^"
-progname = ""  # Initialize progname
-start = 0      # Initialize start
-extdef = []    # Initialize extdef to an empty list
+        if "END" in parts:
+            break
 
-for line in prog:
-    words = line.split()
+        instructions = ["ADD", "SUB", "MUL", "DIV", "LDA", "STA"]
+        
+        if parts[0] not in instructions:
+            # It's a label
+            label = parts[0]
+            symbol_table[label] = f"{lc:06X}"
+            lc += 3
+        else:
+            lc += 3
 
-    if not words: # Skip empty lines
-        continue
+    d_parts = ["D"]
+    for sym in extdef_symbols:
+        if sym in symbol_table:
+            d_parts.append(f"{sym}^{symbol_table[sym]}")
+    d_record = "^ ".join(d_parts)
 
-    # Handle END directive first, as it can be a single word
-    if words[0] == "END":
-        break
+    r_record = "R^ " + " ^ ".join(extref_symbols) + " ^"
 
-    # Now handle other directives and instructions
-    # Check for START directive, which is in words[1] (e.g., "PG1 START 0000")
-    # This requires len(words) to be at least 2 for words[1] and 3 for words[2]
-    if len(words) >= 2 and words[1] == "START":
-        progname = words[0]
-        start = int(words[2])
-        loc = start
-    elif words[0] == "EXTDEF": # e.g., "EXTDEF A B"
-        extdef = words[1:]
-    elif words[0] == "EXTREF": # e.g., "EXTREF C D"
-        for x in words[1:]:
-            rrecord += f" {x} ^"
-    else: # This block handles instructions
-        # If the instruction has a label (3 words: LABEL OPCODE OPERAND)
-        if len(words) == 3: # e.g., "A SUB PQR"
-            symtab[words[0]] = loc
-        # All instructions (1, 2, or 3 words) increment loc by 3.
-        loc += 3
+    print("Sample output:")
+    print(d_record)
+    print(r_record)
+    print("\nLocal Symbol table")
+    print(f"{'Symbol NAME':<12} {'value'}")
+    for sym, val in symbol_table.items():
+        print(f"{sym:<12} {val}")
 
-# The rest of the code is outside the loop and should work with initialized variables
-for sym in extdef:
-    drecord += f" {sym}^{symtab[sym]:06}^"
+asm_code = """
+PROG2 START 1000
+EXTDEF MAX, MIN
+EXTREF VAL1, VAL2
+LDA ALPHA
+MAX STA BETA
+ADD GAMMA
+MIN SUB DELTA
+STA VAL1
+END
+"""
 
-print(drecord)
-print(rrecord)
-
-print("\nLocal Symbol Table")
-print("Symbol\tValue")
-
-for sym,val in symtab.items():
-    print(f"{sym}\t{val:06}")
+generate_records(asm_code)
